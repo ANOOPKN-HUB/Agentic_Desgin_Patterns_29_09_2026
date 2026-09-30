@@ -6,28 +6,54 @@ llm = get_llm()
 
 def reasoning_agent(state: AgentState):
     prompt = f"""
-                You are a math reasoning agent.
+You are the router and math-reasoning agent for a question-answering workflow.
 
-                Convert the question into a valid Python math expression.
-                Return ONLY the expression.
+Decide whether the user's question can be answered by evaluating a single
+arithmetic expression using numbers, parentheses, +, -, *, /, //, %, or **.
 
-                Examples:
-                Question: What is the sum of 5 and 3?
-                Expression: 5 + 3
+If it is an arithmetic question, return exactly:
+MATH: <arithmetic expression>
 
-                Question: What is the average of 100 and 200?
-                Expression: (100 + 200) / 2
+If it is anything else (definitions, explanations, writing, general knowledge,
+or a question that cannot be represented as one arithmetic expression), return
+exactly:
+GENERAL
 
-                Question: What is the square of the average of 100 and 200?
-                Expression: ((100 + 200) / 2) ** 2
+Examples:
+Question: What is 5 plus 3?
+MATH: 5 + 3
+Question: What is the square of the average of 10 and 5?
+MATH: ((10 + 5) / 2) ** 2
+Question: Define AI.
+GENERAL
 
-                Question: {state['question']}
-                Expression:
-                """
-    expression = llm.invoke(prompt).content.strip()
-    
-    return {"expression": expression}
+User question: {state['question']}
+Decision:
+"""
+    decision = str(llm.invoke(prompt).content).strip()
+    if decision.upper().startswith("MATH:"):
+        expression = decision.split(":", maxsplit=1)[1].strip()
+        if expression:
+            return {"route": "math", "expression": expression}
 
-def tool_executor(state: AgentState):
+    # Treat unrecognized model output as a general question instead of trying
+    # to evaluate arbitrary text as Python.
+    return {"route": "general"}
+
+
+def math_agent(state: AgentState):
     result = calculator(state["expression"])
-    return {"result": result}
+    return {"answer": result, "result": result, "route": "math"}
+
+
+def fallback_agent(state: AgentState):
+    prompt = f"""
+Answer the user's question clearly and helpfully. This is the general-question
+fallback, so do not produce or execute a Python expression. If the question is
+ambiguous, briefly state your assumption.
+
+User question: {state['question']}
+Answer:
+"""
+    answer = str(llm.invoke(prompt).content).strip()
+    return {"answer": answer, "route": "general"}

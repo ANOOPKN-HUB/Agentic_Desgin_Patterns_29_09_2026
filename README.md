@@ -1,6 +1,6 @@
 # Agentic AI Pattern Lab
 
-A small LangGraph application with a Streamlit interface for demonstrating two agentic patterns: tool-using and planner-executor.
+A small LangGraph application with a Streamlit interface for demonstrating three agentic patterns: tool-using, planner-executor, and supervisor-worker.
 
 ## Features
 
@@ -10,7 +10,8 @@ A small LangGraph application with a Streamlit interface for demonstrating two a
 - **Streamlit UI:** chat-style interface with example prompts and an indicator showing which branch answered.
 - **CLI runner:** run the workflow directly from the command line.
 - **Planner-executor:** creates an ordered plan, executes each step with prior results as context, then synthesizes a final response.
-- **Pattern switcher:** choose either demonstration from the same Streamlit app.
+- **Supervisor-worker:** delegates arithmetic requests to a math worker and leave-balance requests to a leave worker.
+- **Pattern switcher:** choose a demonstration from the same Streamlit app.
 
 ## Requirements
 
@@ -46,7 +47,7 @@ From the repository root with the virtual environment activated:
 streamlit run app.py
 ```
 
-Open the local URL Streamlit prints in the terminal. Choose **Tool-Using** for arithmetic and general questions, or **Planner-Executor** for multi-step requests. The planner mode displays the plan and each step's execution result alongside its final response.
+Open the local URL Streamlit prints in the terminal. Choose **Tool-Using** for arithmetic and general questions, **Planner-Executor** for multi-step requests, or **Supervisor-Worker** for calculations and sample employee leave-balance lookups. The planner mode displays its plan and step results; the supervisor-worker mode shows the selected worker and its result.
 
 ## Run from the command line
 
@@ -68,7 +69,13 @@ The CLI example in `patterns/tools_using/run.py` demonstrates arithmetic. Run th
 python -m patterns.planner_executor.app
 ```
 
-Both graphs can also be imported and invoked with a `question` value in your own code.
+Run the supervisor-worker examples with:
+
+```powershell
+python -m patterns.supervisor_worker.run
+```
+
+The graphs can also be imported and invoked from your own code. The tool-using and planner-executor graphs take a `question` field; the supervisor-worker graph takes a `query` field.
 
 ## Workflow
 
@@ -80,9 +87,13 @@ Question → Reasoning/Router
 
 Planner-Executor pattern:
 Question → Planner → Step Executor (with accumulated context) → Final Synthesis
+
+Supervisor-Worker pattern:
+Question → Supervisor ── math ──► Math Worker
+					└─ leave ─► Leave-Balance Worker
 ```
 
-The tool-using graph is defined in `patterns/tools_using/`; the planner-executor graph, state, and agents are in `patterns/planner_executor/`. Root `app.py` presents both in Streamlit. The planner limits generated plans to eight steps. The calculator accepts numeric constants, parentheses, unary signs, and `+`, `-`, `*`, `/`, `//`, `%`, and `**`; it rejects other Python syntax and limits expression size and exponent magnitude.
+The tool-using graph is defined in `patterns/tools_using/`; the planner-executor graph, state, and agents are in `patterns/planner_executor/`; and the supervisor-worker graph is in `patterns/supervisor_worker/`. Root `app.py` presents all three in Streamlit. The planner limits generated plans to eight steps. The leave worker uses sample records initialized in `tools/leaves_db.py`. The calculator accepts numeric constants, parentheses, unary signs, and `+`, `-`, `*`, `/`, `//`, `%`, and `**`; it rejects other Python syntax and limits expression size and exponent magnitude.
 
 ## Configuration and troubleshooting
 
